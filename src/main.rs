@@ -1,4 +1,4 @@
-use std::{io, result::Result};
+use std::{io::{self}, result::Result};
 use sqlx::{sqlite::SqliteQueryResult, Sqlite, SqlitePool, migrate::MigrateDatabase};
 use rust_sqlite::Settings;
 
@@ -30,15 +30,40 @@ async fn main() {
             Err(e) => panic!("{}",e)
         }
     }
-
-    let instances = SqlitePool::connect(&db_url).await.unwrap();
-    let qry = "INSERT INTO settings (description) VALUES($1)";
-    let result = sqlx::query(&qry).bind("testing").execute(&instances).await;
-    instances.close().await;
     let setting = create_task();
     setting.print_details();
-    println!("{:?}",result);
+    //LOOP menu to ask what is required to be done
+    menu();
+}
 
+fn menu() {
+    loop {
+        //MAIN MENU
+        println!("1. Add a new setting to DB");
+        println!("2. Read a setting from DB");
+        println!("3. Update a setting in DB");
+        println!("4. Delete a setting from DB");
+        println!("Anything else to Exit");
+        let mut input = String::from("");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Couldnt read line");
+        let input: usize = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => {
+                println!("Not a number!");
+                continue;
+            }
+        };
+
+        match input {
+            1 => add_details(1),
+            2 => read_details(1),
+            3 => update_details(1),
+            4 => delete_setting(1),
+            _ => {println!("Exiting!"); break;}
+        }
+    }
 }
 
 fn create_task() -> Settings {
@@ -54,4 +79,21 @@ fn create_task() -> Settings {
         .expect("Failed to read line");
     let setting = Settings::new(id,description);
     setting
+}
+
+//CRUD functionality
+fn add_details(id: usize) {  
+    println!("Add");
+}
+
+fn read_details(id: usize) {
+    println!("read");
+}
+
+fn update_details(id: usize) {
+    println!("update");
+}
+
+fn delete_setting(id:usize) {
+    println!("Delete");
 }
