@@ -1,5 +1,6 @@
-use std::result::Result;
+use std::{io, result::Result};
 use sqlx::{sqlite::SqliteQueryResult, Sqlite, SqlitePool, migrate::MigrateDatabase};
+use rust_sqlite::Settings;
 
 async fn create_schema(db_url: &str) -> Result<SqliteQueryResult,sqlx::Error> {
     let pool = SqlitePool::connect(&db_url).await?;
@@ -34,6 +35,23 @@ async fn main() {
     let qry = "INSERT INTO settings (description) VALUES($1)";
     let result = sqlx::query(&qry).bind("testing").execute(&instances).await;
     instances.close().await;
+    let setting = create_task();
+    setting.print_details();
     println!("{:?}",result);
 
+}
+
+fn create_task() -> Settings {
+    let mut id = String::new();
+    let mut description = String::new();
+
+    io::stdin()
+        .read_line(&mut id)
+        .expect("Failed to read line");
+    let id = id.trim().parse().expect("Expected Number");
+    io::stdin()
+        .read_line(&mut description)
+        .expect("Failed to read line");
+    let setting = Settings::new(id,description);
+    setting
 }
