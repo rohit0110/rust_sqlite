@@ -1,11 +1,11 @@
 pub struct Settings {
-    id: usize,
-    done: bool,
-    description: String,
+    pub id: i32,
+    pub done: bool,
+    pub description: String,
 }
 
 impl Settings {
-    pub fn new(id: usize, description: String) -> Settings{
+    pub fn new(id: i32, description: String) -> Settings{
         Settings {
             id,
             description,

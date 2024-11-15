@@ -1,9 +1,9 @@
 use std::{io::{self}, result::Result};
-use sqlx::{sqlite::SqliteQueryResult, Sqlite, SqlitePool, migrate::MigrateDatabase};
+use sqlx::{migrate::MigrateDatabase, sqlite::SqliteQueryResult, Error, Row, Sqlite, SqlitePool};
 use rust_sqlite::Settings;
 
-async fn create_schema(db_url: &str) -> Result<SqliteQueryResult,sqlx::Error> {
-    let pool = SqlitePool::connect(&db_url).await?;
+async fn create_schema() -> Result<SqliteQueryResult,sqlx::Error> {
+    let pool = SqlitePool::connect(&DB_URL).await?;
     let qry = 
     "PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS settings
@@ -20,23 +20,22 @@ async fn create_schema(db_url: &str) -> Result<SqliteQueryResult,sqlx::Error> {
     return result;
 }
 
+const DB_URL: &str = "sqlite://sqlite.db";
+
 #[async_std::main]
 async fn main() {
-    let db_url = String::from("sqlite://sqlite.db");
-    if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
-        Sqlite::create_database(&db_url).await.unwrap();
-        match create_schema(&db_url).await {
+    if !Sqlite::database_exists(&DB_URL).await.unwrap_or(false) {
+        Sqlite::create_database(&DB_URL).await.unwrap();
+        match create_schema().await {
             Ok(_) => println!("Database created sucessfully"),
             Err(e) => panic!("{}",e)
         }
     }
-    let setting = create_task();
-    setting.print_details();
     //LOOP menu to ask what is required to be done
-    menu();
+    menu().await;
 }
 
-fn menu() {
+async fn menu() {
     loop {
         //MAIN MENU
         println!("1. Add a new setting to DB");
@@ -57,16 +56,16 @@ fn menu() {
         };
 
         match input {
-            1 => add_details(1),
-            2 => read_details(1),
-            3 => update_details(1),
-            4 => delete_setting(1),
+            1 => _ = add_details().await,
+            2 => _ = read_details().await,
+            3 => _ = update_details(),
+            4 => _ = delete_setting(),
             _ => {println!("Exiting!"); break;}
         }
     }
 }
 
-fn create_task() -> Settings {
+fn create_setting() -> Settings {
     let mut id = String::new();
     let mut description = String::new();
 
@@ -82,18 +81,52 @@ fn create_task() -> Settings {
 }
 
 //CRUD functionality
-fn add_details(id: usize) {  
+async fn add_details() -> Result<SqliteQueryResult,sqlx::Error>{  
     println!("Add");
+    let setting = create_setting();
+    let qry = "INSERT INTO settings (settings_id, description,done) VALUES(?,?,?)";
+    let pool = SqlitePool::connect(&DB_URL).await?;
+    let result = sqlx::query(qry)
+                                                            .bind(setting.id)
+                                                            .bind(setting.description)
+                                                            .bind(setting.done)
+                                                            .execute(&pool)
+                                                            .await;
+    result
+
 }
 
-fn read_details(id: usize) {
+
+async fn read_details() -> Result<Settings, Error> {
     println!("read");
+    let pool = SqlitePool::connect(&DB_URL).await?;
+    let mut id = String::new();
+    io::stdin()
+        .read_line(&mut id)
+        .expect("Failed to read line");
+    let id:i32 = id.trim().parse().expect("Expected Number");
+    let mut setting = Settings::new(0, String::from("value"));
+    // SQL query to select all rows
+    let qry = "SELECT settings_id, description, done FROM settings WHERE settings_id = ?";
+    let rows = sqlx::query(qry).bind(id).fetch_all(&pool).await;
+    let result = match rows {
+        Ok(val) => val,
+        Err(e) => panic!("{}",e)
+    };
+    for row in result {
+        let description: String = row.get("description");
+        let id: i32 = row.get("settings_id");
+        println!("The description of the setting with {}",id);
+        println!("is {}",description);
+        setting = Settings::new(id, description);
+    }
+    Ok(setting)
 }
 
-fn update_details(id: usize) {
+fn update_details() {
     println!("update");
 }
 
-fn delete_setting(id:usize) {
+fn delete_setting() {
     println!("Delete");
 }
