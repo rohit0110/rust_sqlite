@@ -56,7 +56,10 @@ async fn menu() {
         };
 
         match input {
-            1 => _ = add_details().await,
+            1 => match add_details().await {
+                Ok(_) => println!(""),
+                Err(e) => println!("Failed to print Query {:?}",e)
+            },
             2 => _ = read_details().await,
             3 => _ = update_details().await,
             4 => _ = delete_setting().await,
@@ -68,11 +71,12 @@ async fn menu() {
 fn create_setting() -> Settings {
     let mut id = String::new();
     let mut description = String::new();
-
+    println!("Add the id for the setting you want to create:");
     io::stdin()
         .read_line(&mut id)
         .expect("Failed to read line");
     let id = id.trim().parse().expect("Expected Number");
+    println!("Add the description for the same:");
     io::stdin()
         .read_line(&mut description)
         .expect("Failed to read line");
@@ -81,7 +85,7 @@ fn create_setting() -> Settings {
 }
 
 //CRUD functionality
-async fn add_details() -> Result<SqliteQueryResult,sqlx::Error>{  
+async fn add_details() -> Result<(),sqlx::Error>{  
     println!("Add");
     let setting = create_setting();
     let qry = "INSERT INTO settings (settings_id, description,done) VALUES(?,?,?)";
@@ -91,8 +95,13 @@ async fn add_details() -> Result<SqliteQueryResult,sqlx::Error>{
                                                             .bind(setting.description)
                                                             .bind(setting.done)
                                                             .execute(&pool)
-                                                            .await;
-    result
+                                                            .await?;
+    if result.rows_affected() > 0 {
+        println!("Created!");
+    } else {
+        println!("Id already exists");
+    }
+    Ok(())
 
 }
 
@@ -101,6 +110,7 @@ async fn read_details() -> Result<Settings, Error> {
     println!("read");
     let pool = SqlitePool::connect(&DB_URL).await?;
     let mut id = String::new();
+    println!("Add the id for the setting you want to read:");
     io::stdin()
         .read_line(&mut id)
         .expect("Failed to read line");
