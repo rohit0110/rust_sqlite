@@ -1,4 +1,4 @@
-Add Delete Record
+~Add Delete Record~
 ~Add Update Record~
-Add Error Handling
+~Add basic Error Handling for failed DB queries~
 Add tests

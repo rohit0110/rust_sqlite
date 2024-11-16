@@ -58,11 +58,20 @@ async fn menu() {
         match input {
             1 => match add_details().await {
                 Ok(_) => println!(""),
-                Err(e) => println!("Failed to print Query {:?}",e)
+                Err(e) => println!("Failed to create Query {:?}",e)
+            }
+            2 => match read_details().await {
+                Ok(_) => println!(""),
+                Err(e) => println!("Failed to read Query {:?}",e)
             },
-            2 => _ = read_details().await,
-            3 => _ = update_details().await,
-            4 => _ = delete_setting().await,
+            3 => match update_details().await {
+                Ok(_) => println!(""),
+                Err(e) => println!("Failed to update Query {:?}",e)
+            },
+            4 => match delete_details().await {
+                Ok(_) => println!(""),
+                Err(e) => println!("Failed to delete Query {:?}",e)
+            },
             _ => {println!("Exiting!"); break;}
         }
     }
@@ -106,7 +115,7 @@ async fn add_details() -> Result<(),sqlx::Error>{
 }
 
 
-async fn read_details() -> Result<Settings, Error> {
+async fn read_details() -> Result<(), Error> {
     println!("read");
     let pool = SqlitePool::connect(&DB_URL).await?;
     let mut id = String::new();
@@ -115,22 +124,21 @@ async fn read_details() -> Result<Settings, Error> {
         .read_line(&mut id)
         .expect("Failed to read line");
     let id:i32 = id.trim().parse().expect("Expected Number");
-    let mut setting = Settings::new(0, String::from("value"));
     // SQL query to select all rows
     let qry = "SELECT settings_id, description, done FROM settings WHERE settings_id = ?";
-    let rows = sqlx::query(qry).bind(id).fetch_all(&pool).await;
-    let result = match rows {
-        Ok(val) => val,
-        Err(e) => panic!("{}",e)
-    };
-    for row in result {
-        let description: String = row.get("description");
-        let id: i32 = row.get("settings_id");
-        println!("The description of the setting with {}",id);
-        println!("is {}",description);
-        setting = Settings::new(id, description);
+    let rows = sqlx::query(qry).bind(id).fetch_all(&pool).await?;
+    if rows.len() > 0 {
+        for row in rows {
+            let description: String = row.get("description");
+            let id: i32 = row.get("settings_id");
+            println!("The description of the setting with {}",id);
+            println!("is {}",description);
+        }
+    } else {
+        println!("No row with that ID");
     }
-    Ok(setting)
+    
+    Ok(())
 }
 
 async fn update_details() -> Result<(),Error> {
@@ -160,7 +168,7 @@ async fn update_details() -> Result<(),Error> {
     return Ok(())
 }
 
-async fn delete_setting() -> Result<(),Error> {
+async fn delete_details() -> Result<(),Error> {
     println!("Delete");
     println!("Enter the id of the setting that you would like to Delete");
     let mut id = String::new();
