@@ -58,7 +58,7 @@ async fn menu() {
         match input {
             1 => _ = add_details().await,
             2 => _ = read_details().await,
-            3 => _ = update_details(),
+            3 => _ = update_details().await,
             4 => _ = delete_setting(),
             _ => {println!("Exiting!"); break;}
         }
@@ -123,8 +123,31 @@ async fn read_details() -> Result<Settings, Error> {
     Ok(setting)
 }
 
-fn update_details() {
+async fn update_details() -> Result<(),Error> {
     println!("update");
+    println!("Enter the id of the setting that you would like to update");
+    let mut id = String::new();
+    io::stdin()
+        .read_line(&mut id)
+        .expect("Expected an id");
+    let id: i32 = id.trim().parse().expect("expected a number");
+    let mut new_desc = String::new();
+    io::stdin()
+        .read_line(&mut new_desc)
+        .expect("Failed to read line");
+    let qry = "UPDATE settings SET description = ? WHERE settings_id = ?";
+    let pool = SqlitePool::connect(DB_URL).await?;
+    let result = sqlx::query(qry)
+                                                        .bind(new_desc)
+                                                        .bind(id)
+                                                        .execute(&pool)
+                                                        .await?;
+    if result.rows_affected() > 0 {
+        println!("Updated");
+    } else {
+        println!("No Setting with that ID");
+    }
+    return Ok(())
 }
 
 fn delete_setting() {
