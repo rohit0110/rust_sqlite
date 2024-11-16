@@ -59,7 +59,7 @@ async fn menu() {
             1 => _ = add_details().await,
             2 => _ = read_details().await,
             3 => _ = update_details().await,
-            4 => _ = delete_setting(),
+            4 => _ = delete_setting().await,
             _ => {println!("Exiting!"); break;}
         }
     }
@@ -150,6 +150,25 @@ async fn update_details() -> Result<(),Error> {
     return Ok(())
 }
 
-fn delete_setting() {
+async fn delete_setting() -> Result<(),Error> {
     println!("Delete");
+    println!("Enter the id of the setting that you would like to Delete");
+    let mut id = String::new();
+    io::stdin()
+        .read_line(&mut id)
+        .expect("Expected an id");
+    let id: i32 = id.trim().parse().expect("expected a number");
+    let pool = SqlitePool::connect(DB_URL).await?;
+    let qry = "DELETE FROM settings where settings_id = ?";
+    let result = sqlx::query(qry)
+                                                        .bind(id)
+                                                        .execute(&pool)
+                                                        .await?;
+    if result.rows_affected() > 0 {
+        println!("Deleted!");
+    } else {
+        println!("No rows with the id you shared");
+    }
+    return Ok(())
+
 }
